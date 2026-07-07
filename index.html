@@ -198,9 +198,16 @@ async function apiPost(payload){
   return res.json();
 }
 
+let pollInFlight = false;
+
 function startPolling(fn){
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(fn, 3000);
+  if(pollTimer) clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    if(pollInFlight){ startPolling(fn); return; }
+    pollInFlight = true;
+    try{ await fn(); }
+    finally{ pollInFlight = false; }
+  }, 3000);
 }
 
 function renderNameEntry(){
@@ -282,11 +289,14 @@ async function renderGame(){
   }
 
   if(current.status === 'onthuld' || current.status === 'revealed'){
-    let guessesData, overallData;
-    try{ guessesData = await apiGet({ action:'guesses', round: current.round }); }
-    catch(e){ guessesData = { guesses: [] }; }
-    try{ overallData = await apiGet({ action:'leaderboard' }); }
-    catch(e){ overallData = { leaderboard: [] }; }
+    let guessesData = { guesses: [] };
+    let overallData = { leaderboard: [] };
+    try{
+      [guessesData, overallData] = await Promise.all([
+        apiGet({ action:'guesses', round: current.round }),
+        apiGet({ action:'leaderboard' })
+      ]);
+    }catch(e){}
 
     const ranked = guessesData.guesses
       .map(g => ({...g, diff: Math.abs(g.guess - current.price)}))
