@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guess the Price</title>
+<style>
+  :root{
+    --ink:#3D1F3D;
+    --ink-2:#4F2A4C;
+    --parchment:#F7ECD1;
+    --gold:#E8B923;
+    --gold-dim:#C89A1B;
+    --crimson:#C4483F;
+    --forest:#3B7A57;
+    --lilac:#C9B8D9;
+    --font-display: 'MedievalSharp', cursive;
+    --font-body: 'EB Garamond', Georgia, serif;
+    --font-num: 'Cinzel', serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=EB+Garamond:wght@400;500;600;700&family=Cinzel:wght@600;700;800&display=swap');
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 20% 0%, #5B2F58 0%, transparent 45%),
+      radial-gradient(circle at 90% 90%, #34193A 0%, transparent 50%),
+      var(--ink);
+    color:var(--parchment);
+    font-family:var(--font-body);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:24px 16px 60px;
+  }
+  .wrap{width:100%; max-width:480px;}
+
+  .eyebrow{
+    font-family:var(--font-num); font-weight:700; letter-spacing:.16em;
+    text-transform:uppercase; font-size:12px; color:var(--gold); margin:0 0 6px;
+  }
+  h1{
+    font-family:var(--font-display);
+    font-size:38px;
+    line-height:1;
+    margin:0 0 24px;
+    color:var(--parchment);
+    text-shadow:0 2px 0 rgba(0,0,0,.25);
+  }
+  h2{
+    font-family:var(--font-display);
+    font-size:24px;
+    margin:0 0 14px;
+    color:var(--parchment);
+  }
+
+  .card{
+    background:var(--ink-2);
+    border-radius:16px;
+    padding:22px;
+    margin-bottom:18px;
+    border:2px solid rgba(232,185,35,.25);
+    box-shadow:0 4px 0 rgba(0,0,0,.15);
+  }
+
+  .photo{
+    width:100%; border-radius:12px; margin-bottom:18px; display:block;
+    max-height:280px; object-fit:cover; background:rgba(255,255,255,.05);
+    border:3px solid var(--gold);
+  }
+
+  /* Banner-style title for the item name — plenty of room for a fun title */
+  .banner{
+    position:relative;
+    background:linear-gradient(180deg, var(--gold) 0%, var(--gold-dim) 100%);
+    color:var(--ink);
+    border-radius:10px;
+    padding:20px 22px 22px;
+    margin-bottom:20px;
+    text-align:center;
+    box-shadow:0 4px 0 rgba(0,0,0,.2);
+  }
+  .banner::before, .banner::after{
+    content:'';
+    position:absolute;
+    top:0; bottom:-10px;
+    width:22px;
+    background:var(--gold-dim);
+  }
+  .banner::before{ left:-10px; clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%); }
+  .banner::after{ right:-10px; clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%); }
+  .banner-eyebrow{
+    font-family:var(--font-num); font-weight:700; letter-spacing:.14em;
+    text-transform:uppercase; font-size:11px; opacity:.65; margin-bottom:6px;
+  }
+  .banner-title{
+    font-family:var(--font-display);
+    font-size:30px;
+    line-height:1.15;
+    word-wrap:break-word;
+  }
+
+  label{ display:block; font-size:14px; font-weight:600; color:var(--lilac); margin-bottom:6px; }
+  input[type=text], input[type=number]{
+    width:100%; background:var(--ink); border:2px solid rgba(232,185,35,.3);
+    color:var(--parchment); border-radius:10px; padding:13px 14px; font-size:17px;
+    font-family:var(--font-body); margin-bottom:14px;
+  }
+  input:focus{ outline:none; border-color:var(--gold); }
+  button{
+    width:100%; border:none; border-radius:10px; padding:15px 16px;
+    font-family:var(--font-num); font-weight:700; font-size:15px; letter-spacing:.03em;
+    text-transform:uppercase; cursor:pointer; box-shadow:0 3px 0 rgba(0,0,0,.25);
+  }
+  .btn-primary{ background:var(--gold); color:var(--ink); }
+  .btn-primary:hover{ background:var(--gold-dim); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .muted{ color:var(--lilac); font-size:15px; line-height:1.6; }
+  .center{ text-align:center; }
+  .big-emoji{ font-size:46px; margin-bottom:10px; }
+  .waiting-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); margin:0 3px; animation:pulse 1.2s infinite ease-in-out; }
+  .waiting-dot:nth-child(2){ animation-delay:.2s; }
+  .waiting-dot:nth-child(3){ animation-delay:.4s; }
+  @keyframes pulse{ 0%,80%,100%{opacity:.25;} 40%{opacity:1;} }
+
+  .lb-row{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(247,236,209,.1); }
+  .lb-row:last-child{ border-bottom:none; }
+  .lb-rank{
+    font-family:var(--font-num); font-weight:700; font-size:15px; width:32px; height:32px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgba(247,236,209,.08); color:var(--lilac); flex-shrink:0;
+  }
+  .lb-rank.top1{ background:var(--gold); color:var(--ink); }
+  .lb-rank.top2{ background:#D8D0E0; color:var(--ink); }
+  .lb-rank.top3{ background:var(--crimson); color:var(--parchment); }
+  .lb-info{ flex:1; }
+  .lb-name{ font-weight:700; font-size:16px; }
+  .lb-diff{ font-size:12px; color:var(--lilac); }
+  .lb-guess{ font-family:var(--font-num); font-weight:700; font-size:18px; color:var(--gold); }
+  .lb-row.me{ background:rgba(232,185,35,.1); border-radius:10px; padding-left:8px; padding-right:8px; }
+
+  .champion-banner{
+    background:linear-gradient(180deg, var(--crimson) 0%, #8E322B 100%);
+    border-radius:16px;
+    padding:26px 20px;
+    margin-bottom:20px;
+    text-align:center;
+    border:2px solid var(--gold);
+    box-shadow:0 4px 0 rgba(0,0,0,.25);
+  }
+  .champion-crown{ font-size:38px; margin-bottom:8px; }
+  .champion-label{
+    font-family:var(--font-num); font-weight:700; letter-spacing:.14em;
+    text-transform:uppercase; font-size:12px; color:var(--gold); margin-bottom:6px;
+  }
+  .champion-name{
+    font-family:var(--font-display);
+    font-size:34px;
+    color:var(--parchment);
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+
+<script>
+/* ============================================================
+   Paste your Apps Script Web app URL here.
+   Example: https://script.google.com/macros/s/AKfycb.../exec
+   ============================================================ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbzc__MkoAIrc7K3SoEAPFTfrk3WFp77FAEreyYdd7GIPOEZhwt4cnCw7Y5WwqZ0MJCh/exec';
+
+const root = document.getElementById('root');
+let playerName = '';
+let pollTimer = null;
+
+function esc(s){
+  const d = document.createElement('div');
+  d.innerText = s;
+  return d.innerHTML;
+}
+function fmtPrice(n){
+  return '€' + Number(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+async function apiGet(params){
+  const url = API_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(payload){
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+function startPolling(fn){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(fn, 3000);
+}
+
+function renderNameEntry(){
+  root.innerHTML = `
+    <div class="eyebrow">Join the game</div>
+    <h1>Guess the Price</h1>
+    <div class="card">
+      <label>What's your name? (visible to everyone)</label>
+      <input type="text" id="name-input" placeholder="e.g. Kimb" />
+      <button class="btn-primary" id="name-submit">Join</button>
+    </div>
+  `;
+  document.getElementById('name-submit').onclick = () => {
+    const val = document.getElementById('name-input').value.trim();
+    if(!val) return;
+    playerName = val;
+    renderGame();
+  };
+  document.getElementById('name-input').addEventListener('keydown', e => {
+    if(e.key === 'Enter') document.getElementById('name-submit').click();
+  });
+}
+
+async function renderGame(){
+  let data;
+  try{
+    data = await apiGet({ action: 'state' });
+  }catch(e){
+    root.innerHTML = `<div class="card center"><p class="muted">Can't reach the game server. Check your internet connection.</p></div>`;
+    return;
+  }
+
+  const current = data.current;
+
+  if(!current){
+    root.innerHTML = `
+      <div class="eyebrow">${esc(playerName)}</div>
+      <h1>Guess the Price</h1>
+      <div class="card center">
+        <div class="big-emoji">⏳</div>
+        <p class="muted">Waiting for the host to start a round<span class="waiting-dot"></span><span class="waiting-dot"></span><span class="waiting-dot"></span></p>
+      </div>
+    `;
+    startPolling(renderGame);
+    return;
+  }
+
+  let content = `
+    ${current.photo ? `<img class="photo" src="${esc(current.photo)}" alt="${esc(current.product)}" />` : ''}
+    <div class="banner">
+      <div class="banner-eyebrow">Round ${esc(String(current.round))}</div>
+      <div class="banner-title">${esc(current.product)}</div>
+    </div>
+  `;
+
+  if(current.status === 'live'){
+    let guessesData;
+    try{ guessesData = await apiGet({ action:'guesses', round: current.round }); }
+    catch(e){ guessesData = { guesses: [] }; }
+    const mine = guessesData.guesses.find(g => g.name === playerName);
+
+    if(mine){
+      content += `
+        <div class="card center">
+          <div class="big-emoji">✅</div>
+          <p>Your guess: <strong style="color:var(--gold);">${fmtPrice(mine.guess)}</strong></p>
+          <p class="muted">Waiting for the reveal<span class="waiting-dot"></span><span class="waiting-dot"></span><span class="waiting-dot"></span></p>
+        </div>
+      `;
+    } else {
+      content += `
+        <div class="card">
+          <label>What do you think it costs?</label>
+          <input type="number" step="0.01" id="guess-input" placeholder="0.00" inputmode="decimal" />
+          <button class="btn-primary" id="guess-submit">Submit Guess</button>
+        </div>
+      `;
+    }
+  }
+
+  if(current.status === 'onthuld' || current.status === 'revealed'){
+    let guessesData, overallData;
+    try{ guessesData = await apiGet({ action:'guesses', round: current.round }); }
+    catch(e){ guessesData = { guesses: [] }; }
+    try{ overallData = await apiGet({ action:'leaderboard' }); }
+    catch(e){ overallData = { leaderboard: [] }; }
+
+    const ranked = guessesData.guesses
+      .map(g => ({...g, diff: Math.abs(g.guess - current.price)}))
+      .sort((a,b) => a.diff - b.diff);
+
+    const overall = overallData.leaderboard || [];
+
+    // Champion banner only on the final round in the list
+    let championHtml = '';
+    if(current.isLastRound && overall.length > 0){
+      championHtml = `
+        <div class="champion-banner">
+          <div class="champion-crown">👑</div>
+          <div class="champion-label">Champion of the realm</div>
+          <div class="champion-name">${esc(overall[0].name)}</div>
+        </div>
+      `;
+    }
+
+    content = championHtml + content;
+
+    content += `
+      <div class="card">
+        <label>The real price was</label>
+        <div class="banner-title" style="color:var(--gold); font-size:28px; margin-bottom:14px;">${fmtPrice(current.price)}</div>
+        <h2>This Round</h2>
+        ${ranked.length === 0 ? '<p class="muted">No one guessed this round.</p>' : ranked.map((g,i) => `
+          <div class="lb-row ${g.name===playerName?'me':''}">
+            <div class="lb-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</div>
+            <div class="lb-info">
+              <div class="lb-name">${esc(g.name)}${g.name===playerName?' (you)':''}</div>
+              <div class="lb-diff">${fmtPrice(g.diff)} off</div>
+            </div>
+            <div class="lb-guess">${fmtPrice(g.guess)}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <h2>Overall Standings</h2>
+        ${overall.length === 0 ? '<p class="muted">No standings yet.</p>' : overall.map((g,i) => `
+          <div class="lb-row ${g.name===playerName?'me':''}">
+            <div class="lb-rank ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</div>
+            <div class="lb-info">
+              <div class="lb-name">${esc(g.name)}${g.name===playerName?' (you)':''}</div>
+            </div>
+            <div class="lb-guess">${g.points} pts</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  root.innerHTML = `
+    <div class="eyebrow">${esc(playerName)}</div>
+    <h1>Guess the Price</h1>
+    ${content}
+  `;
+
+  const guessBtn = document.getElementById('guess-submit');
+  if(guessBtn){
+    guessBtn.onclick = async () => {
+      const val = parseFloat(document.getElementById('guess-input').value);
+      if(isNaN(val)) return;
+      guessBtn.disabled = true;
+      guessBtn.innerText = 'Submitting...';
+      try{
+        await apiPost({ action:'submitGuess', round: current.round, name: playerName, guess: val });
+      }catch(e){}
+      renderGame();
+    };
+  }
+
+  startPolling(renderGame);
+}
+
+renderNameEntry();
+</script>
+</body>
+</html>
