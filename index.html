@@ -63,12 +63,6 @@
     box-shadow:0 4px 0 rgba(0,0,0,.15);
   }
 
-  .photo{
-    width:100%; border-radius:12px; margin-bottom:18px; display:block;
-    max-height:280px; object-fit:cover; background:rgba(255,255,255,.05);
-    border:3px solid var(--gold);
-  }
-
   /* Banner-style title for the item name — plenty of room for a fun title */
   .banner{
     position:relative;
@@ -232,15 +226,25 @@ function renderNameEntry(){
 }
 
 async function renderGame(){
+  // Niet verversen terwijl iemand actief aan het typen is — anders wordt het
+  // invoerveld vervangen, verliest het de focus, en klapt het toetsenbord dicht.
+  const active = document.activeElement;
+  if(active && (active.id === 'guess-input' || active.id === 'name-input')){
+    startPolling(renderGame);
+    return;
+  }
+
   let data;
   try{
-    data = await apiGet({ action: 'state' });
+    data = await apiGet({ action: 'sync' });
   }catch(e){
     root.innerHTML = `<div class="card center"><p class="muted">Can't reach the game server. Check your internet connection.</p></div>`;
     return;
   }
 
   const current = data.current;
+  const roundGuesses = data.guesses || [];
+  const overall = data.leaderboard || [];
 
   if(!current){
     root.innerHTML = `
@@ -256,7 +260,6 @@ async function renderGame(){
   }
 
   let content = `
-    ${current.photo ? `<img class="photo" src="${esc(current.photo)}" alt="${esc(current.product)}" />` : ''}
     <div class="banner">
       <div class="banner-eyebrow">Round ${esc(String(current.round))}</div>
       <div class="banner-title">${esc(current.product)}</div>
@@ -264,10 +267,7 @@ async function renderGame(){
   `;
 
   if(current.status === 'live'){
-    let guessesData;
-    try{ guessesData = await apiGet({ action:'guesses', round: current.round }); }
-    catch(e){ guessesData = { guesses: [] }; }
-    const mine = guessesData.guesses.find(g => g.name === playerName);
+    const mine = roundGuesses.find(g => g.name === playerName);
 
     if(mine){
       content += `
@@ -289,20 +289,9 @@ async function renderGame(){
   }
 
   if(current.status === 'onthuld' || current.status === 'revealed'){
-    let guessesData = { guesses: [] };
-    let overallData = { leaderboard: [] };
-    try{
-      [guessesData, overallData] = await Promise.all([
-        apiGet({ action:'guesses', round: current.round }),
-        apiGet({ action:'leaderboard' })
-      ]);
-    }catch(e){}
-
-    const ranked = guessesData.guesses
+    const ranked = roundGuesses
       .map(g => ({...g, diff: Math.abs(g.guess - current.price)}))
       .sort((a,b) => a.diff - b.diff);
-
-    const overall = overallData.leaderboard || [];
 
     // Champion banner only on the final round in the list
     let championHtml = '';
